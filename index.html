@@ -1,0 +1,92 @@
+<?php
+session_start();
+
+// Read leaderboard and group by speed
+$leaderboard = ['slow'=>[], 'medium'=>[], 'fast'=>[]];
+$speed_map = ['300'=>'slow', '150'=>'medium', '75'=>'fast'];
+if (file_exists('highscores.txt')) {
+    $lines = file('highscores.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $parts = explode(',', $line);
+        if (count($parts) === 3) {
+            list($player, $score, $speed) = $parts;
+            $speed_key = isset($speed_map[$speed]) ? $speed_map[$speed] : $speed;
+            $leaderboard[$speed_key][] = [
+                'player' => htmlspecialchars($player),
+                'score' => intval($score)
+            ];
+        }
+    }
+    foreach ($leaderboard as &$group) {
+        usort($group, function($a, $b) { return $b['score'] - $a['score']; });
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pac-Man Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Arcade font for gameful look -->
+    <link href="https://fonts.googleapis.com/css?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Pac-Man Game</h1>
+    <div id="setup-area">
+        <label for="speed-select">Select Speed:</label>
+        <select id="speed-select">
+            <option value="300">Slow</option>
+            <option value="150" selected>Medium</option>
+            <option value="75">Fast</option>
+        </select>
+        <button id="start-btn">Start Game</button>
+    </div>
+    <div id="game-area">
+        <canvas id="pacman-canvas" width="448" height="480" style="display:none;"></canvas>
+        <div id="score" style="display:none;">Score: <span id="score-value">0</span></div>
+        <form id="highscore-form" method="post" action="highscore.php" style="display:none;">
+            <input type="text" name="player" placeholder="Your Name" required>
+            <input type="hidden" name="score" id="final-score">
+            <input type="hidden" name="speed" id="final-speed">
+            <button type="submit">Save High Score</button>
+        </form>
+    </div>
+    <div id="leaderboards">
+        <h2>Leaderboard - Slow</h2>
+        <table id="leaderboard-slow">
+            <tr><th>Player</th><th>Score</th></tr>
+            <?php foreach ($leaderboard['slow'] as $entry): ?>
+                <tr>
+                    <td><?= $entry['player'] ?></td>
+                    <td><?= $entry['score'] ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+
+        <h2>Leaderboard - Medium</h2>
+        <table id="leaderboard-medium">
+            <tr><th>Player</th><th>Score</th></tr>
+            <?php foreach ($leaderboard['medium'] as $entry): ?>
+                <tr>
+                    <td><?= $entry['player'] ?></td>
+                    <td><?= $entry['score'] ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+
+        <h2>Leaderboard - Fast</h2>
+        <table id="leaderboard-fast">
+            <tr><th>Player</th><th>Score</th></tr>
+            <?php foreach ($leaderboard['fast'] as $entry): ?>
+                <tr>
+                    <td><?= $entry['player'] ?></td>
+                    <td><?= $entry['score'] ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
